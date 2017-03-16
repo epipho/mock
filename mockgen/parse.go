@@ -215,7 +215,7 @@ func (p *fileParser) parseInterface(name, pkg string, it *ast.InterfaceType) (*m
 			intf.Methods = append(intf.Methods, m)
 		case *ast.Ident:
 			// Embedded interface in this package.
-			ei := p.auxInterfaces[""][v.String()]
+			ei := p.auxInterfaces[pkg][v.String()]
 			if ei == nil {
 				if ei = p.importedInterfaces[pkg][v.String()]; ei == nil {
 					return nil, p.errorf(v.Pos(), "unknown embedded interface %s", v.String())
