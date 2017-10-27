@@ -34,6 +34,7 @@ import (
 	"unicode"
 
 	"github.com/golang/mock/mockgen/model"
+	goimports "golang.org/x/tools/imports"
 )
 
 const (
@@ -41,7 +42,7 @@ const (
 )
 
 var (
-	source      = flag.String("source", "", "(source mode) Input Go source file; enables source mode.")
+	source      = flag.String("source", "", "(source mode) Input Go source file; enables source mode. If present, the first non-flag argument is a comma-separated list of interfaces to generate mocks for.")
 	destination = flag.String("destination", "", "Output file; defaults to stdout.")
 	packageOut  = flag.String("package", "", "Package of the generated code; defaults to the package of the input with a 'mock_' prefix.")
 	selfPackage = flag.String("self_package", "", "If set, the package this mock will be part of.")
@@ -56,7 +57,11 @@ func main() {
 	var pkg *model.Package
 	var err error
 	if *source != "" {
-		pkg, err = ParseFile(*source)
+		var symbols []string
+		if flag.Arg(0) != "" {
+			symbols = strings.Split(flag.Arg(0), ",")
+		}
+		pkg, err = ParseFile(*source, symbols)
 	} else {
 		if flag.NArg() != 2 {
 			log.Fatal("Expected exactly two arguments")
@@ -99,7 +104,9 @@ func main() {
 	if err := g.Generate(pkg, packageName); err != nil {
 		log.Fatalf("Failed generating mock: %v", err)
 	}
-	if _, err := dst.Write(g.Output()); err != nil {
+	if goimported, err := goimports.Process(dst.Name(), g.Output(), nil); err != nil {
+		log.Fatalf("Failed to run goimports on generated source: %v", err)
+	} else if _, err := dst.Write(goimported); err != nil {
 		log.Fatalf("Failed writing to destination: %v", err)
 	}
 }

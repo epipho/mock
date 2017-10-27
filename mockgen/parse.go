@@ -40,7 +40,7 @@ var (
 
 // TODO: simplify error reporting
 
-func ParseFile(source string) (*model.Package, error) {
+func ParseFile(source string, symbols []string) (*model.Package, error) {
 	srcDir, err := filepath.Abs(filepath.Dir(source))
 	if err != nil {
 		return nil, fmt.Errorf("failed getting source directory: %v", err)
@@ -85,6 +85,27 @@ func ParseFile(source string) (*model.Package, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	includeSymbol := func(sym string) bool {
+		if len(symbols) == 0 {
+			return true
+		}
+
+		for _, each := range symbols {
+			if each == sym {
+				return true
+			}
+		}
+		return false
+	}
+
+	var ifaces []*model.Interface
+	for _, iface := range pkg.Interfaces {
+		if includeSymbol(iface.Name) {
+			ifaces = append(ifaces, iface)
+		}
+	}
+	pkg.Interfaces = ifaces
 
 	pkg.DotImports = make([]string, 0, len(dotImports))
 	for path := range dotImports {
